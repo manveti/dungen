@@ -31,6 +31,8 @@ var DunGen = DunGen || {
 
     TILE_SIZE: 980,
 
+    GRID_SIZE: 70,
+
     init: function(){
 	DunGen.TILE_URLS[DG_TILE_BIG_ROOM] = "https://s3.amazonaws.com/files.d20.io/images/5831842/UeVYJBAl-eAse6nV5K4tlw/thumb.jpg?1412476647";
 	DunGen.TILE_URLS[DG_TILE_SMALL_ROOM] = "https://s3.amazonaws.com/files.d20.io/images/5831838/q_qYBvd7x7dSp9gSU6l3UA/thumb.jpg?1412476632";
@@ -39,6 +41,10 @@ var DunGen = DunGen || {
 
 	DunGen.START_URL = "https://s3.amazonaws.com/files.d20.io/images/5832699/smbw3RzDuCfE5H-DjOflEw/thumb.jpg?1412480527";
 	DunGen.END_URL = "https://s3.amazonaws.com/files.d20.io/images/5832701/8uNOQn_0uwCGzSWSPAfizg/thumb.jpg?1412480536";
+
+	if (!state.hasOwnProperty('DunGen')){
+	    state.DunGen = { 'sparse': true };
+	}
     },
 
     rotate: function(tile, n){ // n*90 degree clockwise rotation
@@ -113,7 +119,8 @@ var DunGen = DunGen || {
     },
 
     justPlaceTile: function(workingGrid, finalGrid, squaresToFill, x, y, tile, orientation){
-	var conns = DunGen.directionsFromMasks(DunGen.rotate(tile, orientation)) & workingGrid[x][y].connections;
+	var conns = DunGen.directionsFromMasks(DunGen.rotate(tile, orientation));
+	if (state.DunGen.sparse){ conns &= workingGrid[x][y].connections; }
 	workingGrid[x][y].connections = 0;
 	workingGrid[x][y].filled = 1;
 	finalGrid[x][y].tile = tile;
@@ -248,6 +255,10 @@ var DunGen = DunGen || {
 	DunGen.placeTile(grid, retval, squaresToFill, startPoint[0], startPoint[1], DG_TILE_BIG_ROOM, 0);
 	retval[startPoint[0]][startPoint[1]].start = 1;
 	var endPoint = [randomInteger(w) - 1, randomInteger(h) - 1];
+	while ((endPoint[0] == startPoint[0]) && (endPoint[1] == startPoint[1])){
+	    // make sure end point isn't same as start point (guaranteed possible because we aborted above if total map area was one or fewer squares)
+	    endPoint = [randomInteger(w) - 1, randomInteger(h) - 1];
+	}
 	DunGen.justPlaceTile(grid, retval, squaresToFill, endPoint[0], endPoint[1], DG_TILE_BIG_ROOM, 0);
 	retval[endPoint[0]][endPoint[1]].end = 1;
 
@@ -264,6 +275,7 @@ var DunGen = DunGen || {
     showHelp: function(cmd){
 	sendChat("DunGen", cmd + " WIDTH HEIGHT [TILE SIZE]");
 	sendChat("DunGen", "Generate a WIDTHxHEIGHT dungeon from square tiles of the specified size (in pixels)");
+	sentChat("DunGen", "TILE SIZE defaults to " + DunGen.TILE_SIZE + "; it should generally be a multiple of " + DunGen.GRID_SIZE);
     },
 
     handleChatMessage: function(msg){
@@ -271,23 +283,60 @@ var DunGen = DunGen || {
 
 	var tokens = msg.content.split(" ");
 	if ((tokens.length < 3) || (tokens[1] == "help")){ return DunGen.showHelp(tokens[0]); }
+
+	var width = parseInt(tokens[1]);
+	var height = parseInt(tokens[2]);
+
+	if (width * height <= 1){
+	    sendChat("DunGen", "Error: Map must be larger than 1x1");
+	    return;
+	}
     
 	var tileSize = DunGen.TILE_SIZE;
-	if (tokens.length > 3){ tileSize = tokens[3]; }
+	if (tokens.length > 3){ tileSize = parseInt(tokens[3]); }
+
+	// make sure generated map will fit on page
+	var pageId = Campaign().get('playerpageid');
+	if (!pageId){
+	    sendChat("DunGen", "Error: Unable to determine player page");
+	    return;
+	}
+	var page = getObj("page", pageId);
+	if (!page){
+	    sendChat("DunGen", "Error: Unable to get player page");
+	    return;
+	}
+	if ((width * tileSize > Campaign().get('width') * DunGen.GRID_SIZE) || (height * tileSize > Campaign().get('height') * DunGen.GRID_SIZE)){
+	    var errMsg = "Error: Map size (" + (width * tileSize) + " x " + (height * tileSize) + ") larger than page size (";
+	    errMsg += (Campaign().get('width') * DunGen.GRID_SIZE) + " x " + (Campaign().get('height') * DunGen.GRID_SIZE) + ")";
+	    sendChat("DunGen", errMsg);
+	    return;
+	}
 
 	if (tokens.length > 4){ sendChat("DunGen", "Warning: Ignoring extra args: " + tokens.slice(4).join(" ")); }
 
-	var map = DunGen.generateMap(tokens[1], tokens[2]);
+	if (tileSize % DunGen.GRID_SIZE != 0){
+	    var errMsg = "Warning: Tile size (" + tileSize + ") not a multiple of grid size (" + DunGen.GRID_SIZE + ")";
+	    sendChat("DunGen", errMsg);
+	}
+
+	var map = DunGen.generateMap(width, height);
 
 	for (var i = 0; i < map.length; i++){
 	    for (var j = 0; j < map[i].length; j++){
 		var tileUrl = DunGen.TILE_URLS[map[i][j].tile];
-		if (map[i][j].start){ tileUrl = DunGen.START_URL; }
-		if (map[i][j].end){ tileUrl = DunGen.END_URL; }
+		if (map[i][j].start){
+		    tileUrl = DunGen.START_URL;
+		    map[i][j].orientation = 0;
+		}
+		if (map[i][j].end){
+		    tileUrl = DunGen.END_URL;
+		    map[i][j].orientation = 0;
+		}
 		if (tileUrl){
 		    var tile = createObj("graphic", {
 						    _subtype: "token",
-						    _pageid: Campaign().get("playerpageid"),
+						    _pageid: pageId,
 						    imgsrc: tileUrl,
 						    left: (i + 0.5) * tileSize, top: (j + 0.5) * tileSize,
 						    width: tileSize, height: tileSize,
