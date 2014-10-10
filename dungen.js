@@ -275,7 +275,7 @@ var DunGen = DunGen || {
     showHelp: function(cmd){
 	sendChat("DunGen", cmd + " WIDTH HEIGHT [TILE SIZE]");
 	sendChat("DunGen", "Generate a WIDTHxHEIGHT dungeon from square tiles of the specified size (in pixels)");
-	sentChat("DunGen", "TILE SIZE defaults to " + DunGen.TILE_SIZE + "; it should generally be a multiple of " + DunGen.GRID_SIZE);
+	sendChat("DunGen", "TILE SIZE defaults to " + DunGen.TILE_SIZE + "; it should generally be a multiple of " + DunGen.GRID_SIZE);
 	sendChat("DunGen", cmd + " sparse [on|off]");
 	sendChat("DunGen", "Display or set status of sparse map generation");
 	sendChat("DunGen", "If sparse is on, no tiles will be added to paths which cannot connect to the exit");
