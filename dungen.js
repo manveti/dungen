@@ -276,13 +276,29 @@ var DunGen = DunGen || {
 	sendChat("DunGen", cmd + " WIDTH HEIGHT [TILE SIZE]");
 	sendChat("DunGen", "Generate a WIDTHxHEIGHT dungeon from square tiles of the specified size (in pixels)");
 	sentChat("DunGen", "TILE SIZE defaults to " + DunGen.TILE_SIZE + "; it should generally be a multiple of " + DunGen.GRID_SIZE);
+	sendChat("DunGen", cmd + " sparse [on|off]");
+	sendChat("DunGen", "Display or set status of sparse map generation");
+	sendChat("DunGen", "If sparse is on, no tiles will be added to paths which cannot connect to the exit");
     },
 
     handleChatMessage: function(msg){
 	if ((msg.type != "api") || (msg.content.indexOf("!dungen ") != 0)){ return; }
 
 	var tokens = msg.content.split(" ");
-	if ((tokens.length < 3) || (tokens[1] == "help")){ return DunGen.showHelp(tokens[0]); }
+	if ((tokens.length < 2) || (tokens[1] == "help")){ return DunGen.showHelp(tokens[0]); }
+
+	if (tokens[1] == "sparse"){
+	    if (tokens.length > 2){
+		// set sparse status
+		if ((tokens[2] == "on") || (tokens[2] == "yes") || (tokens[2] == "true") || (tokens[2] == "1")){ state.DunGen.sparse = true; }
+		else{ state.DunGen.sparse = false; }
+	    }
+	    // show sparse status
+	    sendChat("DunGen", "Sparse Map Generation: " + (state.DunGen.sparse ? "on" : "off"));
+	    return;
+	}
+
+	if (tokens.length < 3){ return DunGen.showHelp(tokens[0]); }
 
 	var width = parseInt(tokens[1]);
 	var height = parseInt(tokens[2]);
