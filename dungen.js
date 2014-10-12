@@ -42,6 +42,8 @@ var DunGen = DunGen || {
 	DunGen.START_URL = "https://s3.amazonaws.com/files.d20.io/images/5832699/smbw3RzDuCfE5H-DjOflEw/thumb.jpg?1412480527";
 	DunGen.END_URL = "https://s3.amazonaws.com/files.d20.io/images/5832701/8uNOQn_0uwCGzSWSPAfizg/thumb.jpg?1412480536";
 
+	DunGen.DOOR_URL = "https://s3.amazonaws.com/files.d20.io/images/5919899/hujzBGdrABrZLRxGCsZl2w/thumb.png?1413089027";
+
 	if (!state.hasOwnProperty('DunGen')){
 	    state.DunGen = { 'sparse': true };
 	}
@@ -281,6 +283,10 @@ var DunGen = DunGen || {
 	sendChat("DunGen", "If sparse is on, no tiles will be added to paths which cannot connect to the exit");
     },
 
+    mapConns: function(map, x, y){
+	return DunGen.rotate(map[x][y].tile, map[x][y].orientation);
+    },
+
     handleChatMessage: function(msg){
 	if ((msg.type != "api") || (msg.content.indexOf("!dungen ") != 0)){ return; }
 
@@ -358,6 +364,64 @@ var DunGen = DunGen || {
 						    width: tileSize, height: tileSize,
 						    rotation: map[i][j].orientation * 90,
 						    layer: "map"});
+		    // add doors where appropriate
+		    var conns = DunGen.mapConns(map, i, j);
+		    var doors = [];
+		    if (j > 0){
+			// check upwards
+			if ((conns & DG_CONNECTION_UL) && (DunGen.mapConns(map, i, j - 1) & DG_CONNECTION_DL)){
+			    // upper left: not rotated, not flipped
+			    doors.push([0, false]);
+			}
+			if ((conns & DG_CONNECTION_UR) && (DunGen.mapConns(map, i, j - 1) & DG_CONNECTION_DR)){
+			    // upper right: not rotated, flipped
+			    doors.push([0, true]);
+			}
+		    }
+		    if (i < map.length - 1){
+			// check right
+			if ((conns & DG_CONNECTION_UR) && (DunGen.mapConns(map, i + 1, j) & DG_CONNECTION_UL)){
+			    // right upper: rotated one step, not flipped
+			    doors.push([1, false]);
+			}
+			if ((conns & DG_CONNECTION_DR) && (DunGen.mapConns(map, i + 1, j) & DG_CONNECTION_DL)){
+			    // right lower: rotated one step, flipped
+			    doors.push([1, true]);
+			}
+		    }
+		    if (j < map[i].length - 1){
+			// check downwards
+			if ((conns & DG_CONNECTION_DR) && (DunGen.mapConns(map, i, j + 1) & DG_CONNECTION_UR)){
+			    // lower right: rotated two steps, not flipped
+			    doors.push([2, false]);
+			}
+			if ((conns & DG_CONNECTION_DL) && (DunGen.mapConns(map, i, j + 1) & DG_CONNECTION_UL)){
+			    // lower left: rotated two steps, flipped
+			    doors.push([2, true]);
+			}
+		    }
+		    if (i > 0){
+			// check left
+			if ((conns & DG_CONNECTION_DL) && (DunGen.mapConns(map, i - 1, j) & DG_CONNECTION_DR)){
+			    // left lower: rotated three steps, not flipped
+			    doors.push([3, false]);
+			}
+			if ((conns & DG_CONNECTION_UL) && (DunGen.mapConns(map, i - 1, j) & DG_CONNECTION_UR)){
+			    // left upper: rotated three steps, flipped
+			    doors.push([3, true]);
+			}
+		    }
+		    for (var k = 0; k < doors.length; k++){
+			tile = createObj("graphic", {
+						    _subtype: "token",
+						    _pageid: pageId,
+						    imgsrc: DunGen.DOOR_URL,
+						    left: (i + 0.5) * tileSize, top: (j + 0.5) * tileSize,
+						    width: tileSize, height: tileSize,
+						    rotation: doors[k][0] * 90,
+						    fliph: doors[k][1],
+						    layer: "map"});
+		    }
 		}
 	    }
 	}
