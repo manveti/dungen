@@ -31,6 +31,11 @@ var DunGen = DunGen || {
 
     TILE_SIZE: 980,
 
+    DOOR_TILE_WIDTH: 350,
+    DOOR_TILE_HEIGHT: 140,
+    DOOR_OFFSET: 210,
+    DOOR_WIDTH: 140,
+
     GRID_SIZE: 70,
 
     init: function(){
@@ -42,7 +47,7 @@ var DunGen = DunGen || {
 	DunGen.START_URL = "https://s3.amazonaws.com/files.d20.io/images/5832699/smbw3RzDuCfE5H-DjOflEw/thumb.jpg?1412480527";
 	DunGen.END_URL = "https://s3.amazonaws.com/files.d20.io/images/5832701/8uNOQn_0uwCGzSWSPAfizg/thumb.jpg?1412480536";
 
-	DunGen.DOOR_URL = "https://s3.amazonaws.com/files.d20.io/images/5919899/hujzBGdrABrZLRxGCsZl2w/thumb.png?1413089027";
+	DunGen.DOOR_URL = "https://s3.amazonaws.com/files.d20.io/images/5937088/ywpNg0neBGN7lYexJ_8H2Q/thumb.jpg?1413186773";
 
 	if (!state.hasOwnProperty('DunGen')){
 	    state.DunGen = { 'sparse': true };
@@ -316,6 +321,15 @@ var DunGen = DunGen || {
     
 	var tileSize = DunGen.TILE_SIZE;
 	if (tokens.length > 3){ tileSize = parseInt(tokens[3]); }
+	if (tileSize < 2){
+	    sendChat("DunGen", "Error: Tile size must be at least 2");
+	    return;
+	}
+
+	var doorTileWidth = DunGen.DOOR_TILE_WIDTH * tileSize;
+	var doorTileHeight = DunGen.DOOR_TILE_HEIGHT * tileSize;
+	var doorOffset = DunGen.DOOR_OFFSET * tileSize;
+	var doorWidth = DunGen.DOOR_WIDTH * tileSize;
 
 	// make sure generated map will fit on page
 	var pageId = Campaign().get('playerpageid');
@@ -341,6 +355,14 @@ var DunGen = DunGen || {
 	    var errMsg = "Warning: Tile size (" + tileSize + ") not a multiple of grid size (" + DunGen.GRID_SIZE + ")";
 	    sendChat("DunGen", errMsg);
 	}
+
+	if ((doorTileWidth % DunGen.TILE_SIZE != 0) || (doorTileHeight % DunGen.TILE_SIZE != 0)){
+	    sendChat("DunGen", "Warning: Door size is not an integer for this tile size; door position may not be pixel-perfect");
+	}
+	doorTileWidth /= DunGen.TILE_SIZE;
+	doorTileHeight /= DunGen.TILE_SIZE;
+	doorOffset /= DunGen.TILE_SIZE;
+	doorWidth /= DunGen.TILE_SIZE;
 
 	var map = DunGen.generateMap(width, height);
 
@@ -371,44 +393,44 @@ var DunGen = DunGen || {
 			// check upwards
 			if ((conns & DG_CONNECTION_UL) && (DunGen.mapConns(map, i, j - 1) & DG_CONNECTION_DL)){
 			    // upper left: not rotated, not flipped
-			    doors.push([0, false]);
+			    doors.push([0, false, 0.5 * doorTileWidth, 0.5 * doorTileHeight]);
 			}
 			if ((conns & DG_CONNECTION_UR) && (DunGen.mapConns(map, i, j - 1) & DG_CONNECTION_DR)){
 			    // upper right: not rotated, flipped
-			    doors.push([0, true]);
+			    doors.push([0, true, tileSize - 0.5 * doorTileWidth, 0.5 * doorTileHeight]);
 			}
 		    }
 		    if (i < map.length - 1){
 			// check right
 			if ((conns & DG_CONNECTION_UR) && (DunGen.mapConns(map, i + 1, j) & DG_CONNECTION_UL)){
 			    // right upper: rotated one step, not flipped
-			    doors.push([1, false]);
+			    doors.push([1, false, tileSize - 0.5 * doorTileHeight, 0.5 * doorTileWidth]);
 			}
 			if ((conns & DG_CONNECTION_DR) && (DunGen.mapConns(map, i + 1, j) & DG_CONNECTION_DL)){
 			    // right lower: rotated one step, flipped
-			    doors.push([1, true]);
+			    doors.push([1, true, tileSize - 0.5 * doorTileHeight, tileSize - 0.5 * doorTileWidth]);
 			}
 		    }
 		    if (j < map[i].length - 1){
 			// check downwards
 			if ((conns & DG_CONNECTION_DR) && (DunGen.mapConns(map, i, j + 1) & DG_CONNECTION_UR)){
 			    // lower right: rotated two steps, not flipped
-			    doors.push([2, false]);
+			    doors.push([2, false, tileSize - 0.5 * doorTileWidth, tileSize - 0.5 * doorTileHeight]);
 			}
 			if ((conns & DG_CONNECTION_DL) && (DunGen.mapConns(map, i, j + 1) & DG_CONNECTION_UL)){
 			    // lower left: rotated two steps, flipped
-			    doors.push([2, true]);
+			    doors.push([2, true, 0.5 * doorTileWidth, tileSize - 0.5 * doorTileHeight]);
 			}
 		    }
 		    if (i > 0){
 			// check left
 			if ((conns & DG_CONNECTION_DL) && (DunGen.mapConns(map, i - 1, j) & DG_CONNECTION_DR)){
 			    // left lower: rotated three steps, not flipped
-			    doors.push([3, false]);
+			    doors.push([3, false, 0.5 * doorTileHeight, tileSize - 0.5 * doorTileWidth]);
 			}
 			if ((conns & DG_CONNECTION_UL) && (DunGen.mapConns(map, i - 1, j) & DG_CONNECTION_UR)){
 			    // left upper: rotated three steps, flipped
-			    doors.push([3, true]);
+			    doors.push([3, true, 0.5 * doorTileHeight, 0.5 * doorTileWidth]);
 			}
 		    }
 		    for (var k = 0; k < doors.length; k++){
@@ -416,8 +438,9 @@ var DunGen = DunGen || {
 						    _subtype: "token",
 						    _pageid: pageId,
 						    imgsrc: DunGen.DOOR_URL,
-						    left: (i + 0.5) * tileSize, top: (j + 0.5) * tileSize,
-						    width: tileSize, height: tileSize,
+						    left: i * tileSize + doors[k][2],
+						    top: j * tileSize + doors[k][3],
+						    width: doorTileWidth, height: doorTileHeight,
 						    rotation: doors[k][0] * 90,
 						    fliph: doors[k][1],
 						    layer: "map"});
