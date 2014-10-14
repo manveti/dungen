@@ -36,6 +36,8 @@ var DunGen = DunGen || {
     DOOR_OFFSET: 210,
     DOOR_WIDTH: 140,
 
+    MIN_LINE_WIDTH: 2,
+
     GRID_SIZE: 70,
 
     init: function(){
@@ -447,6 +449,8 @@ var DunGen = DunGen || {
 		    }
 		    // draw dynamic lighting walls
 		    var offsets = [0, doorOffset, doorOffset + doorWidth, tileSize - doorOffset - doorWidth, tileSize - doorOffset, tileSize];
+		    var lineWidth = Math.floor(tileSize / 14);
+		    if (lineWidth < DunGen.MIN_LINE_WIDTH){ lineWidth = DunGen.MIN_LINE_WIDTH; }
 		    if (i > 0){
 			// draw along left
 			for (var k = 1; k < offsets.length; k++){
@@ -455,8 +459,9 @@ var DunGen = DunGen || {
 							_pageid: pageId,
 							_path: JSON.stringify([["M", 0, 0], ["L", 0, l]]),
 							stroke: (k % 2 ? "#ffff00" : "#00ff00"),
+							stroke_width: lineWidth,
 							left: i * tileSize, top: j * tileSize + offsets[k - 1] + 0.5 * l,
-							width: 5, height: l,
+							width: 0, height: l,
 							layer: "walls"});
 			}
 		    }
@@ -468,8 +473,9 @@ var DunGen = DunGen || {
 							_pageid: pageId,
 							_path: JSON.stringify([["M", 0, 0], ["L", l, 0]]),
 							stroke: (k % 2 ? "#ffff00" : "#00ff00"),
+							stroke_width: lineWidth,
 							left: i * tileSize + offsets[k - 1] + 0.5 * l, top: j * tileSize,
-							width: l, height: 5,
+							width: l, height: 0,
 							layer: "walls"});
 			}
 		    }
