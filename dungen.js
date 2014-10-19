@@ -23,11 +23,17 @@ DG_TILE_SMALL_ROOM	= DG_CONNECTION_UL;
 DG_TILE_HALL		= DG_CONNECTION_UL | DG_CONNECTION_DL;
 DG_TILE_CORNER		= DG_CONNECTION_UR | DG_CONNECTION_DR | DG_CONNECTION_DL;
 
+DG_OVERLAY_STAIRS_DN = "overlay_stairsdown";
+DG_OVERLAY_STAIRS_UP = "overlay_stairsup";
+DG_OVERLAY_DOOR = "overlay_door"
+
 var DunGen = DunGen || {
     ALL_DIRECTIONS: [DG_DIRECTION_U, DG_DIRECTION_R, DG_DIRECTION_D, DG_DIRECTION_L],
     ALL_TILES: [DG_TILE_BIG_ROOM, DG_TILE_SMALL_ROOM, DG_TILE_HALL, DG_TILE_CORNER],
+    ALL_IMAGES: [DG_TILE_BIG_ROOM, DG_TILE_SMALL_ROOM, DG_TILE_HALL, DG_TILE_CORNER,
+		    DG_OVERLAY_STAIRS_DN, DG_OVERLAY_STAIRS_UP, DG_OVERLAY_DOOR],
 
-    TILE_URLS: {},
+    TILE_NAMES: {},
 
     TILE_SIZE: 980,
 
@@ -41,19 +47,19 @@ var DunGen = DunGen || {
     GRID_SIZE: 70,
 
     init: function(){
-	DunGen.TILE_URLS[DG_TILE_BIG_ROOM] = "https://s3.amazonaws.com/files.d20.io/images/5831842/UeVYJBAl-eAse6nV5K4tlw/thumb.jpg?1412476647";
-	DunGen.TILE_URLS[DG_TILE_SMALL_ROOM] = "https://s3.amazonaws.com/files.d20.io/images/5831838/q_qYBvd7x7dSp9gSU6l3UA/thumb.jpg?1412476632";
-	DunGen.TILE_URLS[DG_TILE_HALL] = "https://s3.amazonaws.com/files.d20.io/images/5831836/5-Y3ZgCb08KkC74lSUagNw/thumb.jpg?1412476626";
-	DunGen.TILE_URLS[DG_TILE_CORNER] = "https://s3.amazonaws.com/files.d20.io/images/5831840/odBhXGkwby2-LxmniDeLmA/thumb.jpg?1412476639";
+	DunGen.TILE_NAMES[DG_TILE_BIG_ROOM]	= "BigRoom";
+	DunGen.TILE_NAMES[DG_TILE_SMALL_ROOM]	= "SmallRoom";
+	DunGen.TILE_NAMES[DG_TILE_HALL]		= "Hall";
+	DunGen.TILE_NAMES[DG_TILE_CORNER]	= "Corner";
 
-	DunGen.START_URL = "https://s3.amazonaws.com/files.d20.io/images/5832699/smbw3RzDuCfE5H-DjOflEw/thumb.jpg?1412480527";
-	DunGen.END_URL = "https://s3.amazonaws.com/files.d20.io/images/5832701/8uNOQn_0uwCGzSWSPAfizg/thumb.jpg?1412480536";
-
-	DunGen.DOOR_URL = "https://s3.amazonaws.com/files.d20.io/images/5937088/ywpNg0neBGN7lYexJ_8H2Q/thumb.jpg?1413186773";
+	DunGen.TILE_NAMES[DG_OVERLAY_STAIRS_DN]	= "StairsDown";
+	DunGen.TILE_NAMES[DG_OVERLAY_STAIRS_UP]	= "StairsUp";
+	DunGen.TILE_NAMES[DG_OVERLAY_DOOR]	= "Door";
 
 	if (!state.hasOwnProperty('DunGen')){
 	    state.DunGen = { 'sparse': true };
 	}
+	if (!state.DunGen.TILE_URLS){ state.DunGen.TILE_URLS = {}; }
     },
 
     rotate: function(tile, n){ // n*90 degree clockwise rotation
@@ -288,6 +294,8 @@ var DunGen = DunGen || {
 	sendChat("DunGen", cmd + " sparse [on|off]");
 	sendChat("DunGen", "Display or set status of sparse map generation");
 	sendChat("DunGen", "If sparse is on, no tiles will be added to paths which cannot connect to the exit");
+	sendChat("DunGen", cmd + " setimage TILE_NAME");
+	sendChat("DunGen", "Use selected token's image for the specified tile");
     },
 
     mapConns: function(map, x, y){
@@ -312,6 +320,46 @@ var DunGen = DunGen || {
 	}
 
 	if (tokens.length < 3){ return DunGen.showHelp(tokens[0]); }
+
+	if (tokens[1] == "setimage"){
+	    if ((!msg.selected) || (msg.selected.length != 1) || (msg.selected[0]._type != "graphic")){
+		sendChat("DunGen", "Error: setimage requires exactly one selected token");
+		return;
+	    }
+	    var imgToken = getObj(msg.selected[0]._type, msg.selected[0]._id);
+	    if (!imgToken){
+		sendChat("DunGen", "Error: Unable to get selected token");
+		return;
+	    }
+	    var imgUrl = imgToken.get('imgsrc').replace(/[/][^/.]*[.](jpg|png)/, "/thumb.$1");
+	    var tile;
+	    for (var i = 0; i < DunGen.ALL_IMAGES.length; i++){
+		if (DunGen.TILE_NAMES[DunGen.ALL_IMAGES[i]] == tokens[2]){
+		    tile = DunGen.ALL_IMAGES[i];
+		    break;
+		}
+	    }
+	    if (!tile){
+		sendChat("DunGen", "Error: Unrecognized tile/overlay: " + tokens[2]);
+		return;
+	    }
+	    state.DunGen.TILE_URLS[tile] = imgUrl;
+	    sendChat("DunGen", "Set image for tile '" + DunGen.TILE_NAMES[tile] + "' to " + imgUrl);
+	    return;
+	}
+
+	var imagesNeeded = [];
+	for (var i = 0; i < DunGen.ALL_IMAGES.length; i++){
+	    if (!state.DunGen.TILE_URLS[DunGen.ALL_IMAGES[i]]){
+		imagesNeeded.push(DunGen.TILE_NAMES[DunGen.ALL_IMAGES[i]]);
+	    }
+	}
+	if (imagesNeeded.length > 0){
+	    imagesNeeded.sort();
+	    sendChat("DunGen", "Image not set for following tiles/overlays: " + imagesNeeded.join(", "));
+	    sendChat("DunGen", 'Set by selecting image and issuing "!dungen setimage IMAGE_NAME" command');
+	    return;
+	}
 
 	var width = parseInt(tokens[1]);
 	var height = parseInt(tokens[2]);
@@ -370,13 +418,9 @@ var DunGen = DunGen || {
 
 	for (var i = 0; i < map.length; i++){
 	    for (var j = 0; j < map[i].length; j++){
-		var tileUrl = DunGen.TILE_URLS[map[i][j].tile];
-		if (map[i][j].start){
-		    tileUrl = DunGen.START_URL;
-		    map[i][j].orientation = 0;
-		}
-		if (map[i][j].end){
-		    tileUrl = DunGen.END_URL;
+		var tileUrl = state.DunGen.TILE_URLS[map[i][j].tile];
+		if ((map[i][j].start) || (map[i][j].end)){
+		    tileUrl = state.DunGen.TILE_URLS[DG_TILE_BIG_ROOM];
 		    map[i][j].orientation = 0;
 		}
 		if (tileUrl){
@@ -388,6 +432,26 @@ var DunGen = DunGen || {
 						    width: tileSize, height: tileSize,
 						    rotation: map[i][j].orientation * 90,
 						    layer: "map"});
+		    if (map[i][j].start){
+			// add stairs down
+			tile = createObj("graphic", {
+						    _subtype: "token",
+						    _pageid: pageId,
+						    imgsrc: state.DunGen.TILE_URLS[DG_OVERLAY_STAIRS_DN],
+						    left: (i + 0.5) * tileSize, top: (j + 0.5) * tileSize,
+						    width: tileSize, height: tileSize,
+						    layer: "map"});
+		    }
+		    if (map[i][j].end){
+			// add stairs up
+			tile = createObj("graphic", {
+						    _subtype: "token",
+						    _pageid: pageId,
+						    imgsrc: state.DunGen.TILE_URLS[DG_OVERLAY_STAIRS_UP],
+						    left: (i + 0.5) * tileSize, top: (j + 0.5) * tileSize,
+						    width: tileSize, height: tileSize,
+						    layer: "map"});
+		    }
 		    // add doors where appropriate
 		    var conns = DunGen.mapConns(map, i, j);
 		    var doors = [];
@@ -439,7 +503,7 @@ var DunGen = DunGen || {
 			tile = createObj("graphic", {
 						    _subtype: "token",
 						    _pageid: pageId,
-						    imgsrc: DunGen.DOOR_URL,
+						    imgsrc: state.DunGen.TILE_URLS[DG_OVERLAY_DOOR],
 						    left: i * tileSize + doors[k][2],
 						    top: j * tileSize + doors[k][3],
 						    width: doorTileWidth, height: doorTileHeight,
