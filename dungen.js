@@ -34,6 +34,7 @@ var DunGen = DunGen || {
 		    DG_OVERLAY_STAIRS_DN, DG_OVERLAY_STAIRS_UP, DG_OVERLAY_DOOR],
 
     TILE_NAMES: {},
+    TILE_DESCS: {},
 
     TILE_SIZE: 980,
 
@@ -55,6 +56,15 @@ var DunGen = DunGen || {
 	DunGen.TILE_NAMES[DG_OVERLAY_STAIRS_DN]	= "StairsDown";
 	DunGen.TILE_NAMES[DG_OVERLAY_STAIRS_UP]	= "StairsUp";
 	DunGen.TILE_NAMES[DG_OVERLAY_DOOR]	= "Door";
+
+	DunGen.TILE_DESCS[DG_TILE_BIG_ROOM]	= "Room which spans full tile";
+	DunGen.TILE_DESCS[DG_TILE_SMALL_ROOM]	= "Room in upper-left quarter of tile";
+	DunGen.TILE_DESCS[DG_TILE_HALL]		= "Hallway which spans left half of tile";
+	DunGen.TILE_DESCS[DG_TILE_CORNER]	= "Hallway corner which spans right and bottom three-quarters of tile";
+
+	DunGen.TILE_DESCS[DG_OVERLAY_STAIRS_DN]	= "Full-tile sized overlay which includes stairs down from end room";
+	DunGen.TILE_DESCS[DG_OVERLAY_STAIRS_UP]	= "Full-tile sized overlay which includes stairs up from start room";
+	DunGen.TILE_DESCS[DG_OVERLAY_DOOR]	= "Reduced-size overlay which contains a door (possibly embedded in a wall)";
 
 	if (!state.hasOwnProperty('DunGen')){
 	    state.DunGen = { 'sparse': true };
@@ -296,6 +306,8 @@ var DunGen = DunGen || {
 	sendChat("DunGen", "If sparse is on, no tiles will be added to paths which cannot connect to the exit");
 	sendChat("DunGen", cmd + " setimage TILE_NAME");
 	sendChat("DunGen", "Use selected token's image for the specified tile");
+	sendChat("DunGen", cmd + " tiles");
+	sendChat("DunGen", "Show list of tiles, their sizes, and a description of each");
     },
 
     mapConns: function(map, x, y){
@@ -316,6 +328,21 @@ var DunGen = DunGen || {
 	    }
 	    // show sparse status
 	    sendChat("DunGen", "Sparse Map Generation: " + (state.DunGen.sparse ? "on" : "off"));
+	    return;
+	}
+
+	if (tokens[1] == "tiles"){
+	    function showTileDesc(tile, sizeStr){
+		sendChat("DunGen", "<b>" + DunGen.TILE_NAMES[tile] + "</b> " + sizeStr + ":");
+		sendChat("DunGen", DunGen.TILE_DESCS[tile]);
+	    }
+	    var tileSize = "(" + DunGen.TILE_SIZE + " x " + DunGen.TILE_SIZE + ")";
+	    for (var i = 0; i < DunGen.ALL_TILES.length; i++){
+		showTileDesc(DunGen.ALL_TILES[i], tileSize);
+	    }
+	    showTileDesc(DG_OVERLAY_STAIRS_DN, tileSize);
+	    showTileDesc(DG_OVERLAY_STAIRS_UP, tileSize);
+	    showTileDesc(DG_OVERLAY_DOOR, "(" + DunGen.DOOR_TILE_WIDTH + " x " + DunGen.DOOR_TILE_HEIGHT + ")");
 	    return;
 	}
 
