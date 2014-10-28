@@ -72,6 +72,17 @@ var DunGen = DunGen || {
 	if (!state.DunGen.TILE_URLS){ state.DunGen.TILE_URLS = {}; }
     },
 
+    rawWrite: function(s, who, style, from){
+	if (who){
+	    who = "/w " + who.split(" ", 1)[0] + " ";
+	}
+	sendChat(from, who + s.replace(/\n/g, "<br>"));
+    },
+
+    write: function(s, who, style, from){
+	DunGen.rawWrite(s.replace(/</g, "&lt;").replace(/>/g, "&gt;"), who, style, from);
+    },
+
     rotate: function(tile, n){ // n*90 degree clockwise rotation
 	return (tile >> n) | ((tile << (4 - n)) & 0xf);
     },
@@ -297,28 +308,31 @@ var DunGen = DunGen || {
 	return retval;
     },
 
-    showHelp: function(cmd){
-	sendChat("DunGen", cmd + " WIDTH HEIGHT [TILE SIZE]");
-	sendChat("DunGen", "Generate a WIDTHxHEIGHT dungeon from square tiles of the specified size (in pixels)");
-	sendChat("DunGen", "TILE SIZE defaults to " + DunGen.TILE_SIZE + "; it should generally be a multiple of " + DunGen.GRID_SIZE);
-	sendChat("DunGen", cmd + " sparse [on|off]");
-	sendChat("DunGen", "Display or set status of sparse map generation");
-	sendChat("DunGen", "If sparse is on, no tiles will be added to paths which cannot connect to the exit");
-	sendChat("DunGen", cmd + " setimage TILE_NAME");
-	sendChat("DunGen", "Use selected token's image for the specified tile");
-	sendChat("DunGen", cmd + " tiles");
-	sendChat("DunGen", "Show list of tiles, their sizes, and a description of each");
+    showHelp: function(who, cmd){
+	DunGen.write(cmd + " WIDTH HEIGHT [TILE SIZE]", who, "", "DunGen");
+	var helpMsg = "Generate a WIDTHxHEIGHT dungeon from square tiles of the specified size (in pixels)\n";
+	helpMsg += "TILE SIZE defaults to " + DunGen.TILE_SIZE + "; it should generally be a multiple of " + DunGen.GRID_SIZE;
+	DunGen.write(helpMsg, who, "font-size: small; font-family: monospace", "DunGen");
+	DunGen.write(cmd + " sparse [on|off]", who, "", "DunGen");
+	helpMsg = "Display or set status of sparse map generation\n";
+	helpMsg += "If sparse is on, no tiles will be added to paths which cannot connect to the exit";
+	DunGen.write(helpMsg, who, "font-size: small; font-family: monospace", "DunGen");
+	DunGen.write(cmd + " setimage TILE_NAME", who, "", "DunGen");
+	helpMsg = "Use selected token's image for the specified tile";
+	DunGen.write(helpMsg, who, "font-size: small; font-family: monospace", "DunGen");
+	DunGen.write(cmd + " tiles", who, "", "DunGen");
+	helpMsg = "Show list of tiles, their sizes, and a description of each";
+	DunGen.write(helpMsg, who, "font-size: small; font-family: monospace", "DunGen");
     },
 
     mapConns: function(map, x, y){
 	return DunGen.rotate(map[x][y].tile, map[x][y].orientation);
     },
 
-    handleChatMessage: function(msg){
-	if ((msg.type != "api") || (msg.content.indexOf("!dungen ") != 0)){ return; }
+    handleDungenMessage: function(tokens, msg){
+	var who = msg.who;
 
-	var tokens = msg.content.split(" ");
-	if ((tokens.length < 2) || (tokens[1] == "help")){ return DunGen.showHelp(tokens[0]); }
+	if ((tokens.length < 2) || (tokens[1] == "help")){ return DunGen.showHelp(who, tokens[0]); }
 
 	if (tokens[1] == "sparse"){
 	    if (tokens.length > 2){
@@ -327,14 +341,13 @@ var DunGen = DunGen || {
 		else{ state.DunGen.sparse = false; }
 	    }
 	    // show sparse status
-	    sendChat("DunGen", "Sparse Map Generation: " + (state.DunGen.sparse ? "on" : "off"));
+	    DunGen.write("Sparse Map Generation: " + (state.DunGen.sparse ? "on" : "off"), who, "", "DunGen");
 	    return;
 	}
 
 	if (tokens[1] == "tiles"){
 	    function showTileDesc(tile, sizeStr){
-		sendChat("DunGen", "<b>" + DunGen.TILE_NAMES[tile] + "</b> " + sizeStr + ":");
-		sendChat("DunGen", DunGen.TILE_DESCS[tile]);
+		DunGen.rawWrite("<b>" + DunGen.TILE_NAMES[tile] + "</b> " + sizeStr + ":\n\t" + DunGen.TILE_DESCS[tile], who, "", "DunGen");
 	    }
 	    var tileSize = "(" + DunGen.TILE_SIZE + " x " + DunGen.TILE_SIZE + ")";
 	    for (var i = 0; i < DunGen.ALL_TILES.length; i++){
@@ -346,16 +359,16 @@ var DunGen = DunGen || {
 	    return;
 	}
 
-	if (tokens.length < 3){ return DunGen.showHelp(tokens[0]); }
+	if (tokens.length < 3){ return DunGen.showHelp(who, tokens[0]); }
 
 	if (tokens[1] == "setimage"){
 	    if ((!msg.selected) || (msg.selected.length != 1) || (msg.selected[0]._type != "graphic")){
-		sendChat("DunGen", "Error: setimage requires exactly one selected token");
+		DunGen.write("Error: setimage requires exactly one selected token", who, "", "DunGen");
 		return;
 	    }
 	    var imgToken = getObj(msg.selected[0]._type, msg.selected[0]._id);
 	    if (!imgToken){
-		sendChat("DunGen", "Error: Unable to get selected token");
+		DunGen.write("Error: Unable to get selected token", who, "", "DunGen");
 		return;
 	    }
 	    var imgUrl = imgToken.get('imgsrc').replace(/[/][^/.]*[.](jpg|png)/, "/thumb.$1");
@@ -367,11 +380,11 @@ var DunGen = DunGen || {
 		}
 	    }
 	    if (!tile){
-		sendChat("DunGen", "Error: Unrecognized tile/overlay: " + tokens[2]);
+		DunGen.write("Error: Unrecognized tile/overlay: " + tokens[2], who, "", "DunGen");
 		return;
 	    }
 	    state.DunGen.TILE_URLS[tile] = imgUrl;
-	    sendChat("DunGen", "Set image for tile '" + DunGen.TILE_NAMES[tile] + "' to " + imgUrl);
+	    DunGen.write("Set image for tile '" + DunGen.TILE_NAMES[tile] + "' to " + imgUrl, who, "", "DunGen");
 	    return;
 	}
 
@@ -383,8 +396,8 @@ var DunGen = DunGen || {
 	}
 	if (imagesNeeded.length > 0){
 	    imagesNeeded.sort();
-	    sendChat("DunGen", "Image not set for following tiles/overlays: " + imagesNeeded.join(", "));
-	    sendChat("DunGen", 'Set by selecting image and issuing "!dungen setimage IMAGE_NAME" command');
+	    DunGen.write("Image not set for following tiles/overlays: " + imagesNeeded.join(", "), who, "", "DunGen");
+	    DunGen.write('Set by selecting image and issuing "!dungen setimage IMAGE_NAME" command', who, "", "DunGen");
 	    return;
 	}
 
@@ -392,14 +405,14 @@ var DunGen = DunGen || {
 	var height = parseInt(tokens[2]);
 
 	if (width * height <= 1){
-	    sendChat("DunGen", "Error: Map must be larger than 1x1");
+	    DunGen.write("Error: Map must be larger than 1x1", who, "", "DunGen");
 	    return;
 	}
     
 	var tileSize = DunGen.TILE_SIZE;
 	if (tokens.length > 3){ tileSize = parseInt(tokens[3]); }
 	if (tileSize < 2){
-	    sendChat("DunGen", "Error: Tile size must be at least 2");
+	    DunGen.write("Error: Tile size must be at least 2", who, "", "DunGen");
 	    return;
 	}
 
@@ -411,30 +424,30 @@ var DunGen = DunGen || {
 	// make sure generated map will fit on page
 	var pageId = Campaign().get('playerpageid');
 	if (!pageId){
-	    sendChat("DunGen", "Error: Unable to determine player page");
+	    DunGen.write("Error: Unable to determine player page", who, "", "DunGen");
 	    return;
 	}
 	var page = getObj("page", pageId);
 	if (!page){
-	    sendChat("DunGen", "Error: Unable to get player page");
+	    DunGen.write("Error: Unable to get player page", who, "", "DunGen");
 	    return;
 	}
 	if ((width * tileSize > Campaign().get('width') * DunGen.GRID_SIZE) || (height * tileSize > Campaign().get('height') * DunGen.GRID_SIZE)){
 	    var errMsg = "Error: Map size (" + (width * tileSize) + " x " + (height * tileSize) + ") larger than page size (";
 	    errMsg += (Campaign().get('width') * DunGen.GRID_SIZE) + " x " + (Campaign().get('height') * DunGen.GRID_SIZE) + ")";
-	    sendChat("DunGen", errMsg);
+	    DunGen.write(errMsg, who, "", "DunGen");
 	    return;
 	}
 
-	if (tokens.length > 4){ sendChat("DunGen", "Warning: Ignoring extra args: " + tokens.slice(4).join(" ")); }
+	if (tokens.length > 4){ DunGen.write("Warning: Ignoring extra args: " + tokens.slice(4).join(" "), who, "", "DunGen"); }
 
 	if (tileSize % DunGen.GRID_SIZE != 0){
 	    var errMsg = "Warning: Tile size (" + tileSize + ") not a multiple of grid size (" + DunGen.GRID_SIZE + ")";
-	    sendChat("DunGen", errMsg);
+	    DunGen.write(errMsg, who, "", "DunGen");
 	}
 
 	if ((doorTileWidth % DunGen.TILE_SIZE != 0) || (doorTileHeight % DunGen.TILE_SIZE != 0)){
-	    sendChat("DunGen", "Warning: Door size is not an integer for this tile size; door position may not be pixel-perfect");
+	    DunGen.write("Warning: Door size is not an integer for this tile size; door position may not be pixel-perfect", who, "", "DunGen");
 	}
 	doorTileWidth /= DunGen.TILE_SIZE;
 	doorTileHeight /= DunGen.TILE_SIZE;
@@ -585,9 +598,22 @@ var DunGen = DunGen || {
 	}
     },
 
+    handleChatMessage: function(msg){
+	if ((msg.type != "api") || ((msg.content != "!dungen") && (msg.content.indexOf("!dungen") != 0))){ return; }
+
+	return DunGen.handleDungenMessage(msg.content.split(" "), msg);
+    },
+
     registerDunGen: function(){
 	DunGen.init();
-	on("chat:message", DunGen.handleChatMessage);
+	if ((typeof(Shell) != "undefined") && (Shell) && (Shell.registerCommand)){
+	    Shell.registerCommand("!dungen", "!dungen <width> <height> [size]", "Generate a width x height random dungeon", DunGen.handleDungenMessage);
+	    if (Shell.rawWrite){ DunGen.rawWrite = Shell.rawWrite; }
+	    if (Shell.write){ DunGen.write = Shell.write; }
+	}
+	else{
+	    on("chat:message", DunGen.handleChatMessage);
+	}
     }
 };
 
