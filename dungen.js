@@ -551,47 +551,47 @@ var DunGen = DunGen || {
 						    fliph: doors[k][1],
 						    layer: "map"});
 		    }
-		    // draw dynamic lighting walls
-		    var offsets = [0, doorOffset, doorOffset + doorWidth, tileSize - doorOffset - doorWidth, tileSize - doorOffset, tileSize];
-		    var lineWidth = Math.floor(tileSize / 14);
-		    if (lineWidth < DunGen.MIN_LINE_WIDTH){ lineWidth = DunGen.MIN_LINE_WIDTH; }
-		    if (i > 0){
-			// draw along left
-			var pathArray = [["M", 0, 0], ["L", lineWidth, 0], ["L", lineWidth, offsets[1]], ["L", 0, offsets[1]], ["L", 0, 0]];
-			for (var k = 1; k < offsets.length; k++){
-			    var l = offsets[k] - offsets[k - 1];
-			    pathArray[2][2] = l;
-			    pathArray[3][2] = l;
-			    var color = (k % 2 ? "#ffff00" : "#00ff00");
-			    var path = createObj("path", {
-							_pageid: pageId,
-							_path: JSON.stringify(pathArray),
-							stroke: color,
-							fill: color,
-							stroke_width: 1,
-							left: i * tileSize, top: j * tileSize + offsets[k - 1] + 0.5 * l,
-							width: lineWidth, height: l,
-							layer: "walls"});
-			}
+		}
+		// draw dynamic lighting walls
+		var offsets = [0, doorOffset, doorOffset + doorWidth, tileSize - doorOffset - doorWidth, tileSize - doorOffset, tileSize];
+		var lineWidth = Math.floor(tileSize / 14);
+		if (lineWidth < DunGen.MIN_LINE_WIDTH){ lineWidth = DunGen.MIN_LINE_WIDTH; }
+		if (i > 0){
+		    // draw along left
+		    var pathArray = [["M", 0, 0], ["L", lineWidth, 0], ["L", lineWidth, offsets[1]], ["L", 0, offsets[1]], ["L", 0, 0]];
+		    for (var k = 1; k < offsets.length; k++){
+			var l = offsets[k] - offsets[k - 1];
+			pathArray[2][2] = l;
+			pathArray[3][2] = l;
+			var color = (k % 2 ? "#ffff00" : "#00ff00");
+			var path = createObj("path", {
+						    _pageid: pageId,
+						    _path: JSON.stringify(pathArray),
+						    stroke: color,
+						    fill: color,
+						    stroke_width: 1,
+						    left: i * tileSize, top: j * tileSize + offsets[k - 1] + 0.5 * l,
+						    width: lineWidth, height: l,
+						    layer: "walls"});
 		    }
-		    if (j > 0){
-			// draw along top
-			var pathArray = [["M", 0, 0], ["L", 0, lineWidth], ["L", offsets[1], lineWidth], ["L", offsets[1], 0], ["L", 0, 0]];
-			for (var k = 1; k < offsets.length; k++){
-			    var l = offsets[k] - offsets[k - 1];
-			    pathArray[2][1] = l;
-			    pathArray[3][1] = l;
-			    var color = (k % 2 ? "#ffff00" : "#00ff00");
-			    var path = createObj("path", {
-							_pageid: pageId,
-							_path: JSON.stringify(pathArray),
-							stroke: color,
-							fill: color,
-							stroke_width: 1,
-							left: i * tileSize + offsets[k - 1] + 0.5 * l, top: j * tileSize,
-							width: l, height: lineWidth,
-							layer: "walls"});
-			}
+		}
+		if (j > 0){
+		    // draw along top
+		    var pathArray = [["M", 0, 0], ["L", 0, lineWidth], ["L", offsets[1], lineWidth], ["L", offsets[1], 0], ["L", 0, 0]];
+		    for (var k = 1; k < offsets.length; k++){
+			var l = offsets[k] - offsets[k - 1];
+			pathArray[2][1] = l;
+			pathArray[3][1] = l;
+			var color = (k % 2 ? "#ffff00" : "#00ff00");
+			var path = createObj("path", {
+						    _pageid: pageId,
+						    _path: JSON.stringify(pathArray),
+						    stroke: color,
+						    fill: color,
+						    stroke_width: 1,
+						    left: i * tileSize + offsets[k - 1] + 0.5 * l, top: j * tileSize,
+						    width: l, height: lineWidth,
+						    layer: "walls"});
 		    }
 		}
 	    }
