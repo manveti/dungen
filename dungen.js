@@ -27,6 +27,16 @@ DG_OVERLAY_STAIRS_DN = "overlay_stairsdown";
 DG_OVERLAY_STAIRS_UP = "overlay_stairsup";
 DG_OVERLAY_DOOR = "overlay_door"
 
+// default image URLs; will be used if no other URL set
+DG_DEFAULT_URLS = {};
+DG_DEFAULT_URLS[DG_TILE_BIG_ROOM]	= "";
+DG_DEFAULT_URLS[DG_TILE_SMALL_ROOM]	= "";
+DG_DEFAULT_URLS[DG_TILE_HALL]		= "";
+DG_DEFAULT_URLS[DG_TILE_CORNER]		= "";
+DG_DEFAULT_URLS[DG_OVERLAY_STAIRS_DN]	= "";
+DG_DEFAULT_URLS[DG_OVERLAY_STAIRS_UP]	= "";
+DG_DEFAULT_URLS[DG_OVERLAY_DOOR]	= "";
+
 var DunGen = DunGen || {
     ALL_DIRECTIONS: [DG_DIRECTION_U, DG_DIRECTION_R, DG_DIRECTION_D, DG_DIRECTION_L],
     ALL_TILES: [DG_TILE_BIG_ROOM, DG_TILE_SMALL_ROOM, DG_TILE_HALL, DG_TILE_CORNER],
@@ -70,6 +80,11 @@ var DunGen = DunGen || {
 	    state.DunGen = { 'sparse': true };
 	}
 	if (!state.DunGen.TILE_URLS){ state.DunGen.TILE_URLS = {}; }
+	for (var i = 0; i < DunGen.ALL_IMAGES.length; i++){
+	    if ((!state.DunGen.TILE_URLS[DunGen.ALL_IMAGES[i]]) && (DG_DEFAULT_URLS[DunGen.ALL_IMAGES[i]])){
+		state.DunGen.TILE_URLS[DunGen.ALL_IMAGES[i]] = DG_DEFAULT_URLS[DunGen.ALL_IMAGES[i]];
+	    }
+	}
     },
 
     rawWrite: function(s, who, style, from){
