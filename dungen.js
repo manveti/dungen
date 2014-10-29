@@ -29,6 +29,7 @@ DG_OVERLAY_DOOR = "overlay_door"
 
 // default image URLs; will be used if no other URL set
 DG_DEFAULT_URLS = {};
+// setting the constants below will remove the need to set image URLs in each campaign
 DG_DEFAULT_URLS[DG_TILE_BIG_ROOM]	= "";
 DG_DEFAULT_URLS[DG_TILE_SMALL_ROOM]	= "";
 DG_DEFAULT_URLS[DG_TILE_HALL]		= "";
@@ -36,6 +37,7 @@ DG_DEFAULT_URLS[DG_TILE_CORNER]		= "";
 DG_DEFAULT_URLS[DG_OVERLAY_STAIRS_DN]	= "";
 DG_DEFAULT_URLS[DG_OVERLAY_STAIRS_UP]	= "";
 DG_DEFAULT_URLS[DG_OVERLAY_DOOR]	= "";
+
 
 var DunGen = DunGen || {
     ALL_DIRECTIONS: [DG_DIRECTION_U, DG_DIRECTION_R, DG_DIRECTION_D, DG_DIRECTION_L],
